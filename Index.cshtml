@@ -1,0 +1,168 @@
+﻿@{
+    Layout = null; // Optional: remove layout if this is a single-page view
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quote of the Day</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .quote {
+            font-style: italic;
+            margin: 20px 0;
+        }
+
+        .quote-author {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        #loginMessage, #registerMessage, #searchResults {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Quote of the Day</h1>
+
+    <!-- Random Quote Section -->
+    <div id="randomQuoteContainer" class="container">
+        <p class="quote" id="quoteText">"A beautiful quote will appear here."</p>
+        <p class="quote-author" id="quoteAuthor">- Author Name</p>
+        <button onclick="getRandomQuote()">Get New Quote</button>
+    </div>
+
+    <!-- Search Section -->
+    <div id="searchContainer" class="container">
+        <input type="text" id="authorName" placeholder="Search quotes by author">
+        <button onclick="searchQuotes()">Search</button>
+        <div id="searchResults"></div>
+    </div>
+
+    <!-- Register Section -->
+    <div id="registerContainer" class="container">
+        <h2>Register</h2>
+        <p id="registerMessage"></p>
+        <input type="text" id="registerUsername" placeholder="Username" required><br>
+        <input type="email" id="registerEmail" placeholder="Email" required><br>
+        <input type="password" id="registerPassword" placeholder="Password" required><br>
+        <button onclick="registerUser()">Register</button>
+    </div>
+
+    <!-- Login Section -->
+    <div id="loginContainer" class="container">
+        <h2>Login</h2>
+        <p id="loginMessage"></p>
+        <input type="email" id="loginEmail" placeholder="Email" required><br>
+        <input type="password" id="loginPassword" placeholder="Password" required><br>
+        <button onclick="loginUser()">Login</button>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="showSection('randomQuoteContainer')">Quote of the Day</button>
+        <button onclick="showSection('searchContainer')">Search Quotes</button>
+        <button onclick="showSection('registerContainer')">Register</button>
+        <button onclick="showSection('loginContainer')">Login</button>
+    </div>
+
+    <script>
+    // Function to display different sections
+    function showSection(sectionId) {
+        document.querySelectorAll('.container').forEach(section => section.style.display = 'none');
+        document.getElementById(sectionId).style.display = 'block';
+    }
+
+    // Load the random quote section by default
+    showSection('randomQuoteContainer');
+
+    // Fetch a random quote
+    async function getRandomQuote() {
+        const response = await fetch('/api/quotes/random');
+        const quote = await response.json();
+        document.getElementById('quoteText').innerText = quote.QuoteText || "Quote not found.";
+        document.getElementById('quoteAuthor').innerText = quote.AuthorName ? `- ${quote.AuthorName}` : "";
+    }
+
+    // Search quotes by author
+    async function searchQuotes() {
+        const author = document.getElementById('authorName').value;
+        const response = await fetch(`/api/quotes/search?author=${encodeURIComponent(author)}`);
+        const quotes = await response.json();
+
+        const resultsDiv = document.getElementById('searchResults');
+        resultsDiv.innerHTML = '';  // Clear previous results
+
+        if (quotes.length) {
+            quotes.forEach(quote => {
+                const quoteElement = document.createElement('p');
+                quoteElement.innerText = `"${quote.QuoteText}" - ${quote.AuthorName}`;
+                resultsDiv.appendChild(quoteElement);
+            });
+        } else {
+            resultsDiv.innerHTML = '<p>No quotes found.</p>';
+        }
+    }
+
+    // Register a new user
+    async function registerUser() {
+        const user = {
+            Username: document.getElementById('registerUsername').value,
+            Email: document.getElementById('registerEmail').value,
+            PasswordHash: document.getElementById('registerPassword').value
+        };
+
+        const response = await fetch('/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(user)
+        });
+
+        const message = document.getElementById('registerMessage');
+        if (response.ok) {
+            message.innerText = 'Registration successful!';
+        } else {
+            const error = await response.json();
+            message.innerText = error.message || 'Registration failed.';
+        }
+    }
+
+    // Login an existing user
+    async function loginUser() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const response = await fetch('/api/users/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const message = document.getElementById('loginMessage');
+        if (response.ok) {
+            message.innerText = 'Login successful!';
+        } else {
+            message.innerText = 'Login failed. Please check your credentials.';
+        }
+    }
+    </script>
+
+</body>
+</html>
